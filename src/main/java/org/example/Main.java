@@ -47,6 +47,23 @@ public class Main {
         addDepartamento(11, "Calidad", 40000);
         addEmpleado(89267109, "Esther", "Vázquez", 11);
         System.out.println();
+
+        System.out.println("Despedir a todos los empleados que trabajan para el departamento de marketing: ");
+        despedirEmpleados(2);
+    }
+
+    private static void despedirEmpleados(int departamento) {
+        String sql = "delete from empleados where Departamento = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, departamento);
+
+            int update = ps.executeUpdate();
+
+            System.out.println("Se han eliminado " + update + " empleados");
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void addDepartamento(int codigo, String nombre, int presupuesto) {
@@ -123,10 +140,10 @@ public class Main {
 
     private static Map<Integer, Integer> obtenerEmpleadosDepartamentos() {
         Map<Integer, Integer> empleadosDepartamento = new HashMap<>();
-        try (Statement statement = con.createStatement(); ResultSet rs = statement.executeQuery("select Departamento, count(*) from empleados group by Departamento")) {
+        try (Statement statement = con.createStatement(); ResultSet rs = statement.executeQuery("select Departamento, count(*) as empleados from empleados group by Departamento")) {
             while (rs.next()) {
-                int departamento_id = rs.getInt(1);
-                int empleados = rs.getInt(2);
+                int departamento_id = rs.getInt("Departamento");
+                int empleados = rs.getInt("empleados");
                 empleadosDepartamento.putIfAbsent(departamento_id, empleados);
             }
         } catch (SQLException e) {
@@ -152,7 +169,12 @@ public class Main {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Empleado empleado = new Empleado(rs.getInt("DNI"), rs.getString("Nombre"), rs.getString("Apellidos"), rs.getInt("Departamento"));
+                    int dni = rs.getInt("DNI");
+                    String nombre = rs.getString("Nombre");
+                    String apellidos = rs.getString("Apellidos");
+                    int departamento = rs.getInt("Departamento");
+
+                    Empleado empleado = new Empleado(dni, nombre, apellidos, departamento);
                     empleados.add(empleado);
                 }
             }
@@ -165,7 +187,7 @@ public class Main {
 
     private static Set<String> obtenerApellidos() {
         Set<String> apellidos = new HashSet<>();
-        try (Statement statement = con.createStatement(); ResultSet rs = statement.executeQuery("select distinct Apellidos from empleados");) {
+        try (Statement statement = con.createStatement(); ResultSet rs = statement.executeQuery("select distinct Apellidos from empleados")) {
             while (rs.next()) {
                 apellidos.add(rs.getString(1));
             }
